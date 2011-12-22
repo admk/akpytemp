@@ -16,16 +16,23 @@ class Template(object):
     'The answer is: 42'
 
     Some control logic test cases:
-    >>> Template('{% for i in xrange(10) %}{# i #}{% end %}').render()
-    '0123456789'
-    >>> Template('{% if 2 + 4 == 6 %}Yes{% else %}No{% end %}').render()
-    'Yes'
+    >>> Template('{% for i in xrange(10) %}{# 2 ** i #}, {% end %}').render()
+    '1, 2, 4, 8, 16, 32, 64, 128, 256, 512, '
+    >>> Template(
+    ...         '2 + 4 {% if 2 + 4 == 6 %}=={% else %}!={% end %} 6'
+    ...         ).render()
+    '2 + 4 == 6'
 
     Nested logic:
     >>> template = Template(
     ...         '{% for i in [0, 1] %}{% if i %}{# i #}{% end %}{% end %}')
     >>> template.render()
     '1'
+
+    Other stuff:
+    >>> template = Template('Hello {# __emit__(world) #}!')
+    >>> template.render(world='world')
+    'Hello world!'
     """
     def __init__(self, template_string):
         self._template = template_string
@@ -37,7 +44,7 @@ class Template(object):
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
         self._globals = None
         self._locals = {
-                '__render_r__': self._render_r,
+                '__render__': self._render_r,
                 '__emit__': self._emit, }
         self._rendered = None
 
@@ -121,7 +128,7 @@ class Template(object):
         """
         Recursive render calls
         """
-        def enclosing_template(idx, token, lexed_template, lexed_str):
+        def enclosing_template(idx, token, lexed_template):
             """
             Search for matching 'else' or 'end' statement
             """
@@ -134,14 +141,10 @@ class Template(object):
                 elif 'end' == end_token:
                     depth -= 1
                 if depth == 0 or (depth == 1 and 'else' == end_token):
-                    return render_template, end_token, end_idx
+                    return end_idx, end_token, render_template
                 render_template.append((end_str, end_token))
-            raise SyntaxError('%s block is not terminated, source \'%s\''
-                    % (token.title(), lexed_str))
+            return 0, None, None
         def tail_colon(text):
-            """
-            Add tail colon
-            """
             new_text = text.rstrip()
             if not new_text.endswith(':'):
                 new_text += ':'
@@ -158,19 +161,19 @@ class Template(object):
                 eval_result = self._eval(lexed_str)
                 idx += 1
             elif 'for' == token or 'if' == token:
-                if_template, end_token, end_idx = enclosing_template(
-                        idx, token, lexed_template, lexed_str)
+                end_idx, end_token, if_template= enclosing_template(
+                        idx, token, lexed_template)
                 else_template = None
                 if end_token == 'else':
-                    else_template, end_token, end_idx = enclosing_template(
-                            end_idx, end_token, lexed_template, lexed_str)
+                    end_idx, end_token, else_template = enclosing_template(
+                            end_idx, end_token, lexed_template)
                 if end_token != 'end':
                     raise SyntaxError(
-                            '%s, Else clause is not supported in for loops'
+                            '%s, Block statement is not terminated'
                             % lexed_str)
                 eval_str = tail_colon(token.lstrip() + ' ' + lexed_str)
                 eval_str += '\n    '
-                eval_str += '__render_r__(%s)' % if_template
+                eval_str += '__render__(%s)' % if_template
                 if else_template:
                     eval_str += '\nelse:\n    '
                     eval_str += '__render_r__(%s)' % else_template
