@@ -1,4 +1,5 @@
 import re
+import os
 
 class Template(object):
     """
@@ -29,13 +30,21 @@ class Template(object):
     >>> template.render()
     '1'
 
+    Includeing templates:
+    >>> Template(path='test/include_test.template').render()
+    'Hello world!'
+
     Other stuff:
     >>> template = Template('Hello {# __emit__(world) #}!')
     >>> template.render(world='world')
     'Hello world!'
     """
-    def __init__(self, template_string):
-        self._template = template_string
+    def __init__(self, template=None, path=None):
+        self._path = path if path else '.'
+        if not template:
+            self._template = self._read_file(path)
+        else:
+            self._template = template
         self._delimiters = {
                 'left_expr': r'{#',        'right_expr': r'#}',
                 'left_for':  r'{%\s+for',  'right_for':  r'%}',
@@ -43,10 +52,19 @@ class Template(object):
                 'left_else': r'{%\s+else', 'right_else': r'%}',
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
         self._globals = None
-        self._locals = {
+        self._locals_init = {
+                'include': self._include,
                 '__render__': self._render_r,
                 '__emit__': self._emit, }
+        self._locals = dict(self._locals_init)
         self._rendered = None
+        self._emit_enable = True
+
+    def _read_file(self, path):
+        string = ''.join(open(path).readlines())
+        if string.endswith('\n'):
+            string = string[:-1]
+        return string
 
     def _lex(self, template):
         """
@@ -121,8 +139,19 @@ class Template(object):
         self._rendered = ''
 
     def _emit(self, rendered_text):
+        if not self._emit_enable:
+            return
         if rendered_text:
             self._rendered += rendered_text
+
+    def _include(self, path):
+        folder = os.path.split(self._path)[0]
+        include_file = os.path.join(folder, path)
+        include_template = Template(path=include_file)
+        include_result = include_template.render(namespace=self._globals)
+        include_globals = include_template._globals
+        self._emit(include_result)
+        self._globals.update(include_globals)
 
     def _render_r(self, lexed_template):
         """
@@ -205,6 +234,9 @@ class Template(object):
         """
         if not self._globals:
             self._globals = {}
+        # make sure globals has the correct method calls
+        # for the instance
+        self._globals.update(self._locals_init)
         result = None
         try:
             result = eval(block, self._globals, self._locals)
@@ -212,7 +244,7 @@ class Template(object):
             exec block in self._globals, self._locals
         # FIXME: Python can only make imports local
         # if executed in local scope
-        # This hack would evetually in some cases
+        # This hack would eventually in some cases
         # result in namespace collision problem
         self._globals.update(self._locals)
         self._locals.clear()
