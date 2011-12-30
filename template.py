@@ -154,14 +154,16 @@ class Template(object):
     def _get(self, key):
         return self.__dict__[key]
 
-    def _include(self, path):
+    def _include(self, path, emit=True):
         folder = os.path.split(self._path)[0]
         include_file = os.path.join(folder, path)
         include_template = Template(path=include_file)
         include_result = include_template.render(namespace=self._globals)
         include_globals = include_template._globals
-        self._emit(include_result)
         self._globals.update(include_globals)
+        if not emit:
+            return
+        self._emit(include_result)
 
     def _render_r(self, lexed_template):
         """
