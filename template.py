@@ -35,9 +35,11 @@ class Template(object):
     'Hello world!'
 
     Other stuff:
-    >>> template = Template('Hello {# __emit__(world) #}!')
+    >>> template = Template('Hello {# emit(world) #}!')
     >>> template.render(world='world')
     'Hello world!'
+    >>> Template('Hello{# set("_emit_enable", False) #} World').render()
+    'Hello'
     """
     def __init__(self, template=None, path=None):
         self._path = path if path else '.'
@@ -55,8 +57,9 @@ class Template(object):
         self._globals = None
         self._locals_init = {
                 'include': self._include,
-                '__render__': self._render_r,
-                '__emit__': self._emit, }
+                'emit': self._emit,
+                'clear': self._clear,
+                '__render__': self._render_r, }
         self._locals = dict(self._locals_init)
         self._rendered = None
         self._emit_enable = True
