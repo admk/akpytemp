@@ -42,7 +42,10 @@ class Template(object):
     def __init__(self, template=None, path=None):
         self._path = path if path else '.'
         if not template:
-            self._template = self._read_file(path)
+            template = ''.join(open(path).readlines())
+            if template.endswith('\n'):
+                template = template[:-1]
+            self._template = template
         else:
             self._template = template
         self._delimiters = {
@@ -63,12 +66,6 @@ class Template(object):
         self._locals = dict(self._locals_init)
         self._rendered = None
         self._emit_enable = True
-
-    def _read_file(self, path):
-        string = ''.join(open(path).readlines())
-        if string.endswith('\n'):
-            string = string[:-1]
-        return string
 
     def _lex(self, template):
         """
