@@ -38,8 +38,6 @@ class Template(object):
     >>> template = Template('Hello {# emit(world) #}!')
     >>> template.render(world='world')
     'Hello world!'
-    >>> Template('Hello{# set("_emit_enable", False) #} World').render()
-    'Hello'
     """
     def __init__(self, template=None, path=None):
         self._path = path if path else '.'
@@ -59,6 +57,8 @@ class Template(object):
                 'include': self._include,
                 'emit': self._emit,
                 'clear': self._clear,
+                '__set__': self._set,
+                '__get__': self._get,
                 '__render__': self._render_r, }
         self._locals = dict(self._locals_init)
         self._rendered = None
@@ -147,6 +147,12 @@ class Template(object):
             return
         if rendered_text:
             self._rendered += rendered_text
+
+    def _set(self, key, val):
+        self.__dict__[key] = val
+
+    def _get(self, key):
+        return self.__dict__[key]
 
     def _include(self, path):
         folder = os.path.split(self._path)[0]
@@ -261,6 +267,12 @@ class Template(object):
         self._globals.update(self._locals)
         self._locals.clear()
         return result
+
+    def emit_enable(self):
+        return self._emit_enable
+
+    def set_emit_enable(self, enable):
+        self._emit_enable = enable
 
 def key_for_value(dictionary, value):
     """
