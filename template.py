@@ -49,6 +49,7 @@ class Template(object):
                 'left_expr': r'{#',        'right_expr': r'#}',
                 'left_for':  r'{%\s+for',  'right_for':  r'%}',
                 'left_if':   r'{%\s+if',   'right_if':   r'%}',
+                'left_elif': r'{%\s+elif', 'right_elif': r'%}',
                 'left_else': r'{%\s+else', 'right_else': r'%}',
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
         self._globals = None
@@ -169,15 +170,12 @@ class Template(object):
                     depth += 1
                 elif 'end' == end_token:
                     depth -= 1
-                if depth == 0 or (depth == 1 and 'else' == end_token):
+                if depth == 0 or (depth == 1 and (
+                        'else' == end_token or
+                        'elif' == end_token)):
                     return end_idx, end_token, render_template
                 render_template.append((end_str, end_token))
             return 0, None, None
-        def tail_colon(text):
-            new_text = text.rstrip()
-            if not new_text.endswith(':'):
-                new_text += ':'
-            return new_text
         idx = 0
         while idx < len(lexed_template):
             (lexed_str, token) = lexed_template[idx]
@@ -190,22 +188,33 @@ class Template(object):
                 eval_result = self._eval(lexed_str)
                 idx += 1
             elif 'for' == token or 'if' == token:
+                def code_gen(token, lexed_str, template):
+                    def tail_colon(text):
+                        new_text = text.rstrip()
+                        if not new_text.endswith(':'):
+                            new_text += ':'
+                        return new_text
+                    eval_str = tail_colon(token.lstrip() + ' ' + lexed_str)
+                    eval_str += '\n    '
+                    eval_str += '__render__(%s)\n' % template
+                    return eval_str
                 end_idx, end_token, if_template= enclosing_template(
                         idx, token, lexed_template)
-                else_template = None
+                eval_str = code_gen(token, lexed_str, if_template)
+                while 'elif' == end_token:
+                    prev_idx = end_idx
+                    end_idx, end_token, elif_template = enclosing_template(
+                            end_idx, end_token, lexed_template)
+                    eval_str += code_gen(
+                            'elif', lexed_template[prev_idx][0], elif_template)
                 if end_token == 'else':
                     end_idx, end_token, else_template = enclosing_template(
                             end_idx, end_token, lexed_template)
+                    eval_str += code_gen('else', '', else_template)
                 if end_token != 'end':
                     raise SyntaxError(
                             '%s, Block statement is not terminated'
                             % lexed_str)
-                eval_str = tail_colon(token.lstrip() + ' ' + lexed_str)
-                eval_str += '\n    '
-                eval_str += '__render__(%s)' % if_template
-                if else_template:
-                    eval_str += '\nelse:\n    '
-                    eval_str += '__render_r__(%s)' % else_template
                 eval_result = self._eval(eval_str)
                 idx = end_idx + 1
             else:
