@@ -1,5 +1,6 @@
 import re
 import os
+import inspect
 
 class Template(object):
     """
@@ -38,6 +39,8 @@ class Template(object):
     >>> template = Template('Hello {# emit(world) #}!')
     >>> template.render(world='world')
     'Hello world!'
+    >>> Template('1{# set_emit_enable(False) #}2').render()
+    '1'
     """
     def __init__(self, template=None, path=None):
         self._path = path if path else '.'
@@ -57,12 +60,16 @@ class Template(object):
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
         self._globals = None
         self._locals_init = {
-                'include': self._include,
-                'emit': self._emit,
-                'clear': self._clear,
                 '__set__': self._set,
                 '__get__': self._get,
                 '__render__': self._render_r, }
+        def append_to_template(method):
+            self._locals_init[method[0]] = getattr(self, method[0])
+        methods = inspect.getmembers(Template, predicate=inspect.ismethod)
+        for method in methods:
+            if method[0].startswith('_'):
+                continue
+            append_to_template(method)
         self._locals = dict(self._locals_init)
         self._rendered = None
         self._emit_enable = True
@@ -136,10 +143,10 @@ class Template(object):
                 idx += 1
         return lexed
 
-    def _clear(self):
+    def clear(self):
         self._rendered = ''
 
-    def _emit(self, rendered_text):
+    def emit(self, rendered_text):
         if not self._emit_enable:
             return
         if rendered_text:
@@ -151,7 +158,7 @@ class Template(object):
     def _get(self, key):
         return self.__dict__[key]
 
-    def _include(self, path, emit=True):
+    def include(self, path, emit=True):
         folder = os.path.split(self._path)[0]
         include_file = os.path.join(folder, path)
         include_template = Template(path=include_file)
@@ -160,7 +167,7 @@ class Template(object):
         self._globals.update(include_globals)
         if not emit:
             return
-        self._emit(include_result)
+        self.emit(include_result)
 
     def _render_r(self, lexed_template):
         """
@@ -189,7 +196,7 @@ class Template(object):
             (lexed_str, token) = lexed_template[idx]
             eval_result = None
             if 'text' == token:
-                self._emit(lexed_str)
+                self.emit(lexed_str)
                 idx += 1
             elif 'expr' == token:
                 lexed_str = code_gobble(lexed_str)
@@ -229,7 +236,7 @@ class Template(object):
                 raise SyntaxError('\'%s\'\nUnexpected token, source \'%s\''
                         % (token, lexed_str))
             if not eval_result is None:
-                self._emit(str(eval_result))
+                self.emit(str(eval_result))
         return self._rendered
 
     def render(self, namespace=None, **kwargs):
@@ -241,7 +248,7 @@ class Template(object):
         if kwargs:
             namespace.update(kwargs)
         self._globals = namespace
-        self._clear()
+        self.clear()
         lexed_template = self._lex(self._template)
         return self._render_r(lexed_template)
 
