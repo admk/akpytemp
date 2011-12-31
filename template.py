@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 import inspect
 
 class Template(object):
@@ -50,9 +51,14 @@ class Template(object):
         template file search path
         """
         # initialise template
-        self._path = path if path else '.'
+        self._path = path
+        splited_path = os.path.split(path)
+        self._name = splited_path[1]
+        self._dir = os.path.abspath(splited_path[0])
         if not template:
-            template = ''.join(open(path).readlines())
+            f = open(path)
+            template = f.read()
+            f.close()
             if template.endswith('\n'):
                 template = template[:-1]
             self._template = template
@@ -184,8 +190,7 @@ class Template(object):
         """
         Include and render template file from a template
         """
-        folder = os.path.split(self._path)[0]
-        include_file = os.path.join(folder, path)
+        include_file = os.path.join(self._dir, path)
         include_template = Template(path=include_file)
         include_result = include_template.render(namespace=self._globals)
         include_globals = include_template._globals
@@ -275,7 +280,23 @@ class Template(object):
         self._globals = namespace
         self.clear()
         lexed_template = self._lex(self._template)
-        return self._render_r(lexed_template)
+        sys.path.append(self._dir)
+        result = self._render_r(lexed_template)
+        sys.path.remove(self._dir)
+        return result
+
+    def save(self, path, **kwargs):
+        if os.path.isdir(path):
+            path = os.path.join(path, self._name)
+        if not self._rendered:
+            self.render(**kwargs)
+        try:
+            f = open(path, 'w')
+        except IOError:
+            os.makedirs(os.path.split(path)[0])
+            f = open(path, 'w')
+        f.write(self._rendered)
+        f.close()
 
     def _eval(self, block):
         """
