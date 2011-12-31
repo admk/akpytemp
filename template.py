@@ -75,6 +75,8 @@ class Template(object):
         # rendering
         self._rendered = None
         self._emit_enable = True
+        self._eat_whitespaces = False
+        self._eat_blanklines = False
         # namespaces
         self._globals = None
         self._locals_init = {
@@ -165,14 +167,26 @@ class Template(object):
         """
         self._rendered = ''
 
+    _bl_re = re.compile(r'^\s*\n$')
+    _ws_re = re.compile(r'^\s*$')
     def emit(self, rendered_text):
         """
         Render directly to output
         """
         if not self._emit_enable:
             return
-        if rendered_text:
-            self._rendered += rendered_text
+        if not rendered_text:
+            return
+        if self._eat_blanklines:
+            if self._bl_re.match(rendered_text):
+                return
+        if self._eat_whitespaces:
+            splited = rendered_text.splitlines(0)
+            for idx, text in enumerate(splited):
+                if not self._ws_re.match(text):
+                    splited[idx] = text.lstrip()
+            rendered_text = '\n'.join(splited)
+        self._rendered += rendered_text
 
     def _set(self, key, val):
         """
@@ -325,6 +339,18 @@ class Template(object):
 
     def set_emit_enable(self, enable):
         self._emit_enable = enable
+
+    def eat_whitespaces(self):
+        return self._eat_whitespaces
+
+    def set_eat_whitespaces(self, eat):
+        self._eat_whitespaces = eat
+
+    def eat_blanklines(self):
+        return self._eat_blanklines
+
+    def set_eat_blanklines(self, eat):
+        self._eat_blanklines = eat
 
 def key_for_value(dictionary, value):
     """
