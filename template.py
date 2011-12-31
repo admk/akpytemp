@@ -43,6 +43,13 @@ class Template(object):
     '1'
     """
     def __init__(self, template=None, path=None):
+        """
+        Constructor
+        template: a string containing a template
+        path: the path to the template file, also used to determine
+        template file search path
+        """
+        # initialise template
         self._path = path if path else '.'
         if not template:
             template = ''.join(open(path).readlines())
@@ -51,6 +58,7 @@ class Template(object):
             self._template = template
         else:
             self._template = template
+        # delimiter tokens
         self._delimiters = {
                 'left_expr': r'{#',        'right_expr': r'#}',
                 'left_for':  r'{%\s+for',  'right_for':  r'%}',
@@ -58,6 +66,10 @@ class Template(object):
                 'left_elif': r'{%\s+elif', 'right_elif': r'%}',
                 'left_else': r'{%\s+else', 'right_else': r'%}',
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
+        # rendering
+        self._rendered = None
+        self._emit_enable = True
+        # namespaces
         self._globals = None
         self._locals_init = {
                 '__set__': self._set,
@@ -71,8 +83,6 @@ class Template(object):
                 continue
             append_to_template(method)
         self._locals = dict(self._locals_init)
-        self._rendered = None
-        self._emit_enable = True
 
     def _lex(self, template):
         """
@@ -144,21 +154,36 @@ class Template(object):
         return lexed
 
     def clear(self):
+        """
+        Clear all rendered content
+        """
         self._rendered = ''
 
     def emit(self, rendered_text):
+        """
+        Render directly to output
+        """
         if not self._emit_enable:
             return
         if rendered_text:
             self._rendered += rendered_text
 
     def _set(self, key, val):
+        """
+        Private setter
+        """
         self.__dict__[key] = val
 
     def _get(self, key):
+        """
+        Private getter
+        """
         return self.__dict__[key]
 
     def include(self, path, emit=True):
+        """
+        Include and render template file from a template
+        """
         folder = os.path.split(self._path)[0]
         include_file = os.path.join(folder, path)
         include_template = Template(path=include_file)
