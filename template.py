@@ -334,6 +334,9 @@ class Template(object):
         self._locals.clear()
         return result
 
+    def name(self):
+        return self._name
+
     def emit_enable(self):
         return self._emit_enable
 
