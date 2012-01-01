@@ -291,7 +291,7 @@ class Template(object):
         Render the template
         """
         if not namespace:
-            namespace = {}
+            namespace = globals()
         if kwargs:
             namespace.update(kwargs)
         self._globals = namespace
