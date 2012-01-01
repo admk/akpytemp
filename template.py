@@ -72,6 +72,9 @@ class Template(object):
                 'left_elif': r'{%\s+elif', 'right_elif': r'%}',
                 'left_else': r'{%\s+else', 'right_else': r'%}',
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
+        self._delimiter_re = {}
+        for key, val in self._delimiters.iteritems():
+            self._delimiter_re[key] = re.compile('(' + val + ')')
         # rendering
         self._rendered = None
         self._emit_enable = True
@@ -105,10 +108,6 @@ class Template(object):
                 if val in key:
                     new_key = key.replace(pair[idx], pair[1 - idx])
             return self._delimiter_re[new_key]
-        # construct regexes
-        self._delimiter_re = {}
-        for key, val in self._delimiters.iteritems():
-            self._delimiter_re[key] = re.compile('(' + val + ')')
         # split template
         lexed_template = [template]
         for regex in self._delimiter_re.itervalues():
@@ -257,7 +256,7 @@ class Template(object):
                     eval_str += '\n    '
                     eval_str += '__render__(%s)\n' % template
                     return eval_str
-                end_idx, end_token, if_template= enclosing_template(
+                end_idx, end_token, if_template = enclosing_template(
                         idx, token, lexed_template)
                 eval_str = code_gen(token, lexed_str, if_template)
                 while 'elif' == end_token:
