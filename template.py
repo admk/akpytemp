@@ -52,9 +52,13 @@ class Template(object):
         """
         # initialise template
         self._path = path
-        splited_path = os.path.split(path)
-        self._name = splited_path[1]
-        self._dir = os.path.abspath(splited_path[0])
+        if path:
+            splited_path = os.path.split(path)
+            self._name = splited_path[1]
+            self._dir = os.path.abspath(splited_path[0])
+        else:
+            self._name = 'untitled'
+            self._dir = '.'
         if not template:
             f = open(path)
             template = f.read()
