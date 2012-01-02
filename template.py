@@ -215,6 +215,7 @@ class Template(object):
         if kwargs:
             namespace = None
             include_namespace.update(kwargs)
+        include_namespace.update(parent=self)
         include_result = include_template.render(namespace=include_namespace)
         include_globals = include_template._globals
         self._globals.update(include_globals)
@@ -345,6 +346,12 @@ class Template(object):
 
     def name(self):
         return self._name
+
+    def dir(self):
+        return self._dir
+
+    def path(self):
+        return self._path
 
     def emit_enable(self):
         return self._emit_enable
