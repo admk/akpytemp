@@ -203,13 +203,19 @@ class Template(object):
         """
         return self.__dict__[key]
 
-    def include(self, path, emit=True):
+    def include(self, path, emit=True, namespace=None, **kwargs):
         """
         Include and render template file from a template
         """
         include_file = os.path.join(self._dir, path)
         include_template = Template(path=include_file)
-        include_result = include_template.render(namespace=self._globals)
+        include_namespace = dict(self._globals)
+        if namespace:
+            include_namespace.update(namespace)
+        if kwargs:
+            namespace = None
+            include_namespace.update(kwargs)
+        include_result = include_template.render(namespace=include_namespace)
         include_globals = include_template._globals
         self._globals.update(include_globals)
         if not emit:
