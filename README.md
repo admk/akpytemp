@@ -4,23 +4,31 @@ akpytemp - A Simple but Awesome General Purpose Templating Utility
 Installation
 ------------
 * Clone from Github
+
     <code>git clone git@github.com:admk/akpytemp.git akpytemp</code>
+
 * Install by executing
-    <code>cd akpytemp</code>
-    <code>python setup.py build</code>
-    <code>python setup.py install</code>
+
+<pre>
+    cd akpytemp
+    python setup.py build
+    python setup.py install
+</pre>
 
 Usage
 -----
 * A hello world example:
-<code>
+
+<pre>
     >>> from akpytemp import Template
     >>> Template('Hello {# world #}, world='world')
     'Hello world'
-</code>
+</pre>
+
 * More complex usage:
+
 <code>12daysofxmas.template</code>
-<code>
+<pre>
     {#
         def ordinal(n):
             if 10 < n < 14: return u'%sth' % n
@@ -44,10 +52,10 @@ Usage
     {% end %}{% if d >= 2  %}Two turtle doves,
     {% end %}{% if d == 1  %}A{% else %}And a{% end %} partridge in a pear tree.
     {% end %}    
-</code>
+</pre>
 Rendered result by running
     <code>python template.py test/12daysofxmas.template</code>
-<code>
+<pre>
     On the 1st day of Christmas,
     my true love sent to me
     A partridge in a pear tree.
@@ -161,9 +169,10 @@ Rendered result by running
     Three French hens,
     Two turtle doves,
     And a partridge in a pear tree.
-</code>
+</pre>
 
 * Built-in functions
+
     There are many built-in functions available to use in template rendering,
     simply call them like you would expect in Python, the methods in the
     template instance will be invoked. For example,
@@ -181,10 +190,11 @@ Rendered result by running
     for the template.
 
 * Error display
+
     *akpytemp* has a user friendly error display when an syntax error or an
     execution exception is caught. It gives a part of your source code
     highlighting the line that raised the exception with colour output.
-<code>
+<pre>
     **  Error Occured in file "src/shifter.v":
     NameError: name 'accu_init_str' is not defined
     **  Source:
@@ -195,4 +205,4 @@ Rendered result by running
          68 |         accu_prev <= {# accu_init_str #};
          69 |     end
          70 | ...
-</code>
+</pre>
