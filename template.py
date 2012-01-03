@@ -329,14 +329,14 @@ class Template(object):
         """
         Run a block of code, return the return value from the code
         """
-        def eval_or_exec(block):
+        def eval_or_exec(block, globs, locls):
             result = None
             try:
-                result = eval(block, self._globals, self._locals)
+                result = eval(block, globs, locls)
             except SyntaxError:
-                exec block in self._globals, self._locals
+                exec block in globs, locls
             return result
-        def print_exception(block, display_lines=2):
+        def print_exception(display_lines=2):
             # extract backtrace
             import traceback
             exc_type, exc_val, exc_tb = sys.exc_info()
@@ -375,7 +375,7 @@ class Template(object):
         # for the instance
         self._globals.update(self._locals_init)
         try:
-            result = eval_or_exec(block)
+            result = eval_or_exec(block, self._globals, self._locals)
         except Exception:
             print_exception(block)
             raise
