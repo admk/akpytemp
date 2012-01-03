@@ -471,6 +471,20 @@ def code_gobble(code, gobble_count=-1):
         new_code_list.append(line[gobble_count:])
     return '\n'.join(new_code_list)
 
+def main():
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('-o', '--outputdir', dest='outputdir')
+    parser.add_option('-t', '--test', dest='should_test')
+    (options, args) = parser.parse_args()
+    if options.should_test:
+        import doctest
+        doctest.testmod()
+        return
+    if len(args) == 0:
+        parser.error('File is not specified')
+    print args[0]
+    Template(path=args[0]).save(options.outputdir if options.outputdir else sys.stdout)
+
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    main()
