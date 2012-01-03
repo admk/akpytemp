@@ -21,9 +21,7 @@ class Template(object):
     Some control logic test cases:
     >>> Template('{% for i in xrange(10) %}{# 2 ** i #}, {% end %}').render()
     '1, 2, 4, 8, 16, 32, 64, 128, 256, 512, '
-    >>> Template(
-    ...         '2 + 4 {% if 2 + 4 == 6 %}=={% else %}!={% end %} 6'
-    ...         ).render()
+    >>> Template('2 + 4 {% if 2 + 4 == 6 %}=={% else %}!={% end %} 6').render()
     '2 + 4 == 6'
 
     Nested logic:
