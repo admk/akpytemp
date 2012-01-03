@@ -83,6 +83,7 @@ class Template(object):
         self._emit_enable = True
         self._eat_whitespaces = False
         self._eat_blanklines = False
+        self._failed = False
         # namespaces
         self._globals = None
         self._locals_init = {
@@ -377,8 +378,10 @@ class Template(object):
         try:
             result = eval_or_exec(block, self._globals, self._locals)
         except Exception:
-            print_exception(block)
-            raise
+            if not self._failed:
+                print_exception()
+                self._failed = True
+                raise RuntimeError('The above error originates from')
         # FIXME: Python can only make imports local
         # if executed in local scope
         # This hack would eventually in some cases
