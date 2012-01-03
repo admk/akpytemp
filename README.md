@@ -177,19 +177,19 @@ Rendered result by running
     simply call them like you would expect in Python, the methods in the
     template instance will be invoked. For example,
 
-        <code>{# name() #}</code>
+        {# name() #}
 
     will give the name of the template file being rendered.
     It is also possible to include template files within a template, this is
     done by simply using
 
-        <code>{# include('path/to/another_template_file') #}</code>
+        {# include('path/to/another_template_file') #}
 
     The namespaces of the included file will also become available in the
     parent file.
     To call built-in functions that belongs to the parent template, simply use
 
-        <code>{# parent.name() #}</code>
+        {# parent.name() #}
 
     It is possible to extend build-in functions by subclassing Template, any
     member methods with a name that does not start with '_' will get included
