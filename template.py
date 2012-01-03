@@ -138,8 +138,9 @@ class Template(object):
                 if not rdlim_re.match(lexed_template[idx + 2]):
                     error_str = ''.join(lexed_template[idx:(idx + 2)])
                 if error_str:
-                    raise SyntaxError('\'%s\'\nCode block is not terminated'
-                            % error_str)
+                    raise SyntaxError(
+                            'line %d, "%s": Code block is not terminated' %
+                            (line_no, error_str))
                 # tokenise
                 token_re_results = token_re.search(ldlim_key)
                 if token_re_results.groups < 1:
@@ -158,8 +159,9 @@ class Template(object):
                     error_str = lexed_template[idx - 1] + lexed_str
                 else:
                     error_str = lexed_str
-                raise SyntaxError('\'%s\'\nNo code block to terminate'
-                        % error_str)
+                raise SyntaxError(
+                        'line %d, "%s": No code block to terminate' %
+                        (line_no, lexed_str))
             if not is_code:
                 if lexed_str:
                     lexed.append((lexed_str, 'text', line_no))
@@ -274,6 +276,10 @@ class Template(object):
                         idx, token, lexed_template)
                 eval_str = code_gen(token, lexed_str, if_template)
                 while 'elif' == end_token:
+                    if 'for' == token:
+                        raise SyntaxError(
+                                'line %d: "for" cannot follow with "elif"' %
+                                lexed_template[end_idx][2])
                     prev_idx = end_idx
                     end_idx, end_token, elif_template = enclosing_template(
                             end_idx, end_token, lexed_template)
@@ -285,13 +291,16 @@ class Template(object):
                     eval_str += code_gen('else', '', else_template)
                 if end_token != 'end':
                     raise SyntaxError(
-                            '%s, Block statement is not terminated'
-                            % lexed_str)
+                            'line %d: Control statement is not terminated' %
+                            line_no)
                 eval_result = self._eval(eval_str, line_no)
                 idx = end_idx + 1
+            elif 'end' == token:
+                raise SyntaxError(
+                        'line %d: No control statement to terminate.' %
+                        line_no)
             else:
-                raise SyntaxError('\'%s\'\nUnexpected token, source \'%s\''
-                        % (token, lexed_str))
+                raise SyntaxError('line %d: Unexpected token.' % line_no)
             if not eval_result is None:
                 self.emit(str(eval_result))
         return self._rendered
@@ -306,10 +315,17 @@ class Template(object):
             namespace.update(kwargs)
         self._globals = namespace
         self.clear()
-        lexed_template = self._lex(self._template)
-        sys.path.append(self._dir)
-        result = self._render_r(lexed_template)
-        sys.path.remove(self._dir)
+        try:
+            lexed_template = self._lex(self._template)
+            sys.path.append(self._dir)
+            result = self._render_r(lexed_template)
+            sys.path.remove(self._dir)
+        except SyntaxError:
+            if not self._exc:
+                # print exception & source
+                self._exc = self._format_exception(line_offset=1)
+                print self._exc
+                raise
         return result
 
     def save(self, path, **kwargs):
