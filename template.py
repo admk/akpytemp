@@ -116,8 +116,10 @@ class Template(object):
             lexed_template = chop(lexed_template, regex)
         # assign tokens
         token_re = re.compile('.*_(.*)')
+        line_no_re = re.compile('\n')
         lexed = []
         idx = 0
+        line_no = 1
         lexed_template_size = len(lexed_template)
         while idx < lexed_template_size:
             is_code = False
@@ -143,7 +145,8 @@ class Template(object):
                     raise Exception('\'%s\'\nInvalid lexer structure'
                             % ldlim_key)
                 lexed.append((lexed_template[idx + 1],
-                        token_re_results.group(1)))
+                        token_re_results.group(1), line_no))
+                line_no += len(line_no_re.findall(lexed_template[idx + 1]))
                 idx += 3
             # right delimiter consistency checks
             rdlim_res = re_lookup_val(self._delimiter_re, 'right.*')
@@ -158,7 +161,8 @@ class Template(object):
                         % error_str)
             if not is_code:
                 if lexed_str:
-                    lexed.append((lexed_str, 'text'))
+                    lexed.append((lexed_str, 'text', line_no))
+                    line_no += len(line_no_re.findall(lexed_str))
                 idx += 1
         return lexed
 
@@ -232,7 +236,7 @@ class Template(object):
             depth = 1
             render_template = []
             for end_idx in xrange(idx + 1, len(lexed_template)):
-                (end_str, end_token) = lexed_template[end_idx]
+                (end_str, end_token, end_line_no) = lexed_template[end_idx]
                 if 'for' == end_token or 'if' == end_token:
                     depth += 1
                 elif 'end' == end_token:
@@ -241,18 +245,18 @@ class Template(object):
                         'else' == end_token or
                         'elif' == end_token)):
                     return end_idx, end_token, render_template
-                render_template.append((end_str, end_token))
+                render_template.append((end_str, end_token, end_line_no))
             return 0, None, None
         idx = 0
         while idx < len(lexed_template):
-            (lexed_str, token) = lexed_template[idx]
+            (lexed_str, token, line_no) = lexed_template[idx]
             eval_result = None
             if 'text' == token:
                 self.emit(lexed_str)
                 idx += 1
             elif 'expr' == token:
                 lexed_str = code_gobble(lexed_str)
-                eval_result = self._eval(lexed_str)
+                eval_result = self._eval(lexed_str, line_no)
                 idx += 1
             elif 'for' == token or 'if' == token:
                 def code_gen(token, lexed_str, template):
@@ -282,7 +286,7 @@ class Template(object):
                     raise SyntaxError(
                             '%s, Block statement is not terminated'
                             % lexed_str)
-                eval_result = self._eval(eval_str)
+                eval_result = self._eval(eval_str, line_no)
                 idx = end_idx + 1
             else:
                 raise SyntaxError('\'%s\'\nUnexpected token, source \'%s\''
@@ -320,20 +324,46 @@ class Template(object):
         f.write(self._rendered)
         f.close()
 
-    def _eval(self, block):
+    def _eval(self, block, start_line_no):
         """
         Run a block of code, return the return value from the code
         """
+        def eval_or_exec(block):
+            result = None
+            try:
+                result = eval(block, self._globals, self._locals)
+            except SyntaxError:
+                exec block in self._globals, self._locals
+            return result
+
+        def print_exception(block, display_lines=2):
+            import traceback
+            exc_type, exc_val, exc_tb = sys.exc_info()
+            exc_str = traceback.format_exception_only(exc_type, exc_val)
+            print '*** Error Occured:', ''.join(exc_str)[:-1]
+            line_no = traceback.extract_tb(exc_tb)[-1][1] + start_line_no - 1
+            print '*** Source:'
+            for idx, line in enumerate(self._template.splitlines(0)):
+                if abs(idx - line_no + 1) == display_lines + 1:
+                    print '%4d ...' % (idx + 1)
+                elif abs(idx - line_no + 1) > display_lines:
+                    continue
+                elif idx + 1 == line_no:
+                    print '%4d |---> %s' % (idx + 1, line)
+                else:
+                    print '%4d |     %s' % (idx + 1, line)
+            del exc_tb
         if not self._globals:
             self._globals = {}
         # make sure globals has the correct method calls
         # for the instance
         self._globals.update(self._locals_init)
-        result = None
         try:
-            result = eval(block, self._globals, self._locals)
-        except SyntaxError:
-            exec block in self._globals, self._locals
+            result = eval_or_exec(block)
+        except Exception:
+            print_exception(block)
+            raise
+
         # FIXME: Python can only make imports local
         # if executed in local scope
         # This hack would eventually in some cases
