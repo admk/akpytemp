@@ -5,57 +5,52 @@ Installation
 ------------
 * Clone from Github
 
-    <code>git clone git@github.com:admk/akpytemp.git akpytemp</code>
+        git clone git@github.com:admk/akpytemp.git akpytemp
 
 * Install by executing
 
-<pre>
-    cd akpytemp
-    python setup.py build
-    python setup.py install
-</pre>
+        cd akpytemp
+        python setup.py build
+        python setup.py install
 
 Usage
 -----
 * A hello world example:
 
-<pre>
-    >>> from akpytemp import Template
-    >>> Template('Hello {# world #}, world='world')
-    'Hello world'
-</pre>
+        >>> from akpytemp import Template
+        >>> Template('Hello {# world #}, world='world')
+        'Hello world'
 
-* More complex usage:
+* More complex usage
 
-<code>12daysofxmas.template</code>
-<pre>
-    {#
-        def ordinal(n):
-            if 10 < n < 14: return u'%sth' % n
-            if n % 10 == 1: return u'%sst' % n
-            if n % 10 == 2: return u'%snd' % n
-            if n % 10 == 3: return u'%srd' % n
-            return u'%sth' % n                      #}
-    {% for d in xrange(1, 13) %}
-    On the {# ordinal(d) #} day of Christmas,
-    my true love sent to me
-    {% if d == 12 %}Twelve drummers drumming,
-    {% end %}{% if d >= 11 %}Eleven pipers piping,
-    {% end %}{% if d >= 10 %}Ten lords a-leaping,
-    {% end %}{% if d >= 9  %}Nine ladies dancing,
-    {% end %}{% if d >= 8  %}Eight maids a-milking,
-    {% end %}{% if d >= 7  %}Seven swans a-swimming,
-    {% end %}{% if d >= 6  %}Six geese a-laying,
-    {% end %}{% if d >= 5  %}Five golden rings,
-    {% end %}{% if d >= 4  %}Four calling birds,
-    {% end %}{% if d >= 3  %}Three French hens,
-    {% end %}{% if d >= 2  %}Two turtle doves,
-    {% end %}{% if d == 1  %}A{% else %}And a{% end %} partridge in a pear tree.
-    {% end %}    
-</pre>
-Rendered result by running
-    <code>python template.py test/12daysofxmas.template</code>
-<pre>
+    <code>12daysofxmas.template</code>
+
+        {#
+            def ordinal(n):
+                if 10 < n < 14: return u'%sth' % n
+                if n % 10 == 1: return u'%sst' % n
+                if n % 10 == 2: return u'%snd' % n
+                if n % 10 == 3: return u'%srd' % n
+                return u'%sth' % n                      #}
+        {% for d in xrange(1, 13) %}
+        On the {# ordinal(d) #} day of Christmas,
+        my true love sent to me
+        {% if d == 12 %}Twelve drummers drumming,
+        {% end %}{% if d >= 11 %}Eleven pipers piping,
+        {% end %}{% if d >= 10 %}Ten lords a-leaping,
+        {% end %}{% if d >= 9  %}Nine ladies dancing,
+        {% end %}{% if d >= 8  %}Eight maids a-milking,
+        {% end %}{% if d >= 7  %}Seven swans a-swimming,
+        {% end %}{% if d >= 6  %}Six geese a-laying,
+        {% end %}{% if d >= 5  %}Five golden rings,
+        {% end %}{% if d >= 4  %}Four calling birds,
+        {% end %}{% if d >= 3  %}Three French hens,
+        {% end %}{% if d >= 2  %}Two turtle doves,
+        {% end %}{% if d == 1  %}A{% else %}And a{% end %} partridge in a pear tree.
+        {% end %}    
+
+Rendered result by running <code>python template.py test/12daysofxmas.template</code>
+
     On the 1st day of Christmas,
     my true love sent to me
     A partridge in a pear tree.
@@ -169,7 +164,6 @@ Rendered result by running
     Three French hens,
     Two turtle doves,
     And a partridge in a pear tree.
-</pre>
 
 * Built-in functions
 
@@ -200,15 +194,15 @@ Rendered result by running
     *akpytemp* has a user friendly error display when an syntax error or an
     execution exception is caught. It gives a part of your source code
     highlighting the line that raised the exception with colour output.
-<pre>
-    **  Error Occured in file "src/shifter.v":
-    NameError: name 'accu_init_str' is not defined
-    **  Source:
-         64 | ...
-         65 |     else
-         66 |     begin
-    -->  67 |         accu = {# accu_init_str #};
-         68 |         accu_prev = {# accu_init_str #};
-         69 |     end
-         70 | ...
-</pre>
+
+        **  Error Occured in file "src/shifter.v":
+        NameError: name 'accu_init_str' is not defined
+        **  Source:
+             64 | ...
+             65 |     else
+             66 |     begin
+        -->  67 |         accu = {# accu_init_str #};
+             68 |         accu_prev = {# accu_init_str #};
+             69 |     end
+             70 | ...
+
