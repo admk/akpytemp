@@ -116,7 +116,6 @@ class Template(object):
             lexed_template = chop(lexed_template, regex)
         # assign tokens
         token_re = re.compile('.*_(.*)')
-        line_no_re = re.compile('\n')
         lexed = []
         idx = 0
         line_no = 1
@@ -146,7 +145,7 @@ class Template(object):
                             % ldlim_key)
                 lexed.append((lexed_template[idx + 1],
                         token_re_results.group(1), line_no))
-                line_no += len(line_no_re.findall(lexed_template[idx + 1]))
+                line_no += lexed_template[idx + 1].count('\n')
                 idx += 3
             # right delimiter consistency checks
             rdlim_res = re_lookup_val(self._delimiter_re, 'right.*')
@@ -162,7 +161,7 @@ class Template(object):
             if not is_code:
                 if lexed_str:
                     lexed.append((lexed_str, 'text', line_no))
-                    line_no += len(line_no_re.findall(lexed_str))
+                    line_no += lexed_str.count('\n')
                 idx += 1
         return lexed
 
@@ -324,6 +323,7 @@ class Template(object):
         f.write(self._rendered)
         f.close()
 
+    _exception_line_no_re = re.compile('line (\d+)')
     def _eval(self, block, start_line_no):
         """
         Run a block of code, return the return value from the code
@@ -335,14 +335,21 @@ class Template(object):
             except SyntaxError:
                 exec block in self._globals, self._locals
             return result
-
         def print_exception(block, display_lines=2):
             import traceback
             exc_type, exc_val, exc_tb = sys.exc_info()
             exc_str = traceback.format_exception_only(exc_type, exc_val)
             print '*** Error Occured:', ''.join(exc_str)[:-1]
-            line_no = traceback.extract_tb(exc_tb)[-1][1] + start_line_no - 1
             print '*** Source:'
+            exc_tb_list = traceback.extract_tb(exc_tb)
+            for (_, tb_line_no, _, text) in exc_tb_list:
+                if not text:
+                    line_no = tb_line_no
+                    break
+            line_no_re_result = self._exception_line_no_re.search(exc_str)
+            if line_no_re_result:
+                line_no = int(line_no_re_result.group(1))
+            line_no += start_line_no - 1
             for idx, line in enumerate(self._template.splitlines(0)):
                 if abs(idx - line_no + 1) == display_lines + 1:
                     print '%4d ...' % (idx + 1)
@@ -363,7 +370,6 @@ class Template(object):
         except Exception:
             print_exception(block)
             raise
-
         # FIXME: Python can only make imports local
         # if executed in local scope
         # This hack would eventually in some cases
