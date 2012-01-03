@@ -51,21 +51,21 @@ Usage
 
 Rendered result by running <code>python template.py test/12daysofxmas.template</code>
 
-    On the 1st day of Christmas,
-    my true love sent to me
-    A partridge in a pear tree.
+        On the 1st day of Christmas,
+        my true love sent to me
+        A partridge in a pear tree.
 
-    On the 2nd day of Christmas,
-    my true love sent to me
-    Two turtle doves,
-    And a partridge in a pear tree.
+        On the 2nd day of Christmas,
+        my true love sent to me
+        Two turtle doves,
+        And a partridge in a pear tree.
 
-    On the 3rd day of Christmas,
-    my true love sent to me
-    Three French hens,
-    Two turtle doves,
-    And a partridge in a pear tree.
-    ...
+        On the 3rd day of Christmas,
+        my true love sent to me
+        Three French hens,
+        Two turtle doves,
+        And a partridge in a pear tree.
+        ...
 
 * Built-in functions
 
