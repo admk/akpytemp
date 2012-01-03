@@ -347,7 +347,8 @@ class Template(object):
             exc_str = traceback.format_exception_only(exc_type, exc_val)
             exc_str = ''.join(exc_str)[:-1]
             # print description
-            print Colors.FAIL + '*** Error Occured:' + Colors.END
+            print Colors.FAIL + \
+                    '*** Error Occured in file "%s":' % self._path + Colors.END
             print exc_str
             # find line number
             exc_tb_list = traceback.extract_tb(exc_tb)
@@ -384,7 +385,7 @@ class Template(object):
             if not self._failed:
                 print_exception()
                 self._failed = True
-                raise RuntimeError('The above error originates from')
+                raise
         # FIXME: Python can only make imports local
         # if executed in local scope
         # This hack would eventually in some cases
