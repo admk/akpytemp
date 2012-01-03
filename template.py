@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import inspect
+from colors import Colors
 
 class Template(object):
     """
@@ -336,11 +337,15 @@ class Template(object):
                 exec block in self._globals, self._locals
             return result
         def print_exception(block, display_lines=2):
+            # extract backtrace
             import traceback
             exc_type, exc_val, exc_tb = sys.exc_info()
             exc_str = traceback.format_exception_only(exc_type, exc_val)
-            print '*** Error Occured:', ''.join(exc_str)[:-1]
-            print '*** Source:'
+            exc_str = ''.join(exc_str)[:-1]
+            # print description
+            print Colors.FAIL + '*** Error Occured:' + Colors.END
+            print exc_str
+            # find line number
             exc_tb_list = traceback.extract_tb(exc_tb)
             for (_, tb_line_no, _, text) in exc_tb_list:
                 if not text:
@@ -350,15 +355,19 @@ class Template(object):
             if line_no_re_result:
                 line_no = int(line_no_re_result.group(1))
             line_no += start_line_no - 1
+            # print source code
+            print Colors.FAIL + '*** Source:' + Colors.END
             for idx, line in enumerate(self._template.splitlines(0)):
                 if abs(idx - line_no + 1) == display_lines + 1:
-                    print '%4d ...' % (idx + 1)
+                    print '   %4d | ...' % (idx + 1)
                 elif abs(idx - line_no + 1) > display_lines:
                     continue
                 elif idx + 1 == line_no:
-                    print '%4d |---> %s' % (idx + 1, line)
+                    print Colors.GREEN + '-->' + \
+                          '%4d' % (idx + 1) + Colors.END + ' | ' + \
+                          Colors.WARNING + '%s' % line + Colors.END
                 else:
-                    print '%4d |     %s' % (idx + 1, line)
+                    print '   %4d | %s' % (idx + 1, line)
             del exc_tb
         if not self._globals:
             self._globals = {}
