@@ -83,7 +83,7 @@ class Template(object):
         self._emit_enable = True
         self._eat_whitespaces = False
         self._eat_blanklines = False
-        self._failed = False
+        self._exc = None
         # namespaces
         self._globals = None
         self._locals_init = {
@@ -328,7 +328,6 @@ class Template(object):
         f.write(self._rendered)
         f.close()
 
-    _exception_line_no_re = re.compile('line (\d+)')
     def _eval(self, block, start_line_no):
         """
         Run a block of code, return the return value from the code
@@ -340,40 +339,6 @@ class Template(object):
             except SyntaxError:
                 exec block in globs, locls
             return result
-        def print_exception(display_lines=2):
-            # extract backtrace
-            import traceback
-            exc_type, exc_val, exc_tb = sys.exc_info()
-            exc_str = traceback.format_exception_only(exc_type, exc_val)
-            exc_str = ''.join(exc_str)[:-1]
-            # print description
-            print Colors.FAIL + \
-                    '*** Error Occured in file "%s":' % self._path + Colors.END
-            print exc_str
-            # find line number
-            exc_tb_list = traceback.extract_tb(exc_tb)
-            for (_, tb_line_no, _, text) in exc_tb_list:
-                if not text:
-                    line_no = tb_line_no
-                    break
-            line_no_re_result = self._exception_line_no_re.search(exc_str)
-            if line_no_re_result:
-                line_no = int(line_no_re_result.group(1))
-            line_no += start_line_no - 1
-            # print source code
-            print Colors.FAIL + '*** Source:' + Colors.END
-            for idx, line in enumerate(self._template.splitlines(0)):
-                if abs(idx - line_no + 1) == display_lines + 1:
-                    print '   %4d | ...' % (idx + 1)
-                elif abs(idx - line_no + 1) > display_lines:
-                    continue
-                elif idx + 1 == line_no:
-                    print Colors.GREEN + '-->' + \
-                          '%4d' % (idx + 1) + Colors.END + ' | ' + \
-                          Colors.WARNING + '%s' % line + Colors.END
-                else:
-                    print '   %4d | %s' % (idx + 1, line)
-            del exc_tb
         if not self._globals:
             self._globals = {}
         # make sure globals has the correct method calls
@@ -382,9 +347,11 @@ class Template(object):
         try:
             result = eval_or_exec(block, self._globals, self._locals)
         except Exception:
-            if not self._failed:
-                print_exception()
-                self._failed = True
+            if not self._exc:
+                # print exception & source
+                self._exc = self._format_exception(
+                        line_offset=start_line_no)
+                print self._exc
                 raise
         # FIXME: Python can only make imports local
         # if executed in local scope
@@ -393,6 +360,47 @@ class Template(object):
         self._globals.update(self._locals)
         self._locals.clear()
         return result
+
+    _exception_line_no_re = re.compile('line (\d+)')
+
+    def _format_exception(self, line_no=0, line_offset=0, display_lines=2):
+        # extract backtrace
+        import traceback
+        exc_type, exc_val, exc_tb = sys.exc_info()
+        exc_str = traceback.format_exception_only(exc_type, exc_val)
+        exc_str = ''.join(exc_str)[:-1]
+        fmt_exc = ''
+        # print description
+        fmt_exc += Colors.FAIL + \
+                '*** Error Occured in file "%s":' % self._path + \
+                Colors.END + '\n'
+        fmt_exc += exc_str + '\n'
+        # find line number
+        if not line_no:
+            exc_tb_list = traceback.extract_tb(exc_tb)
+            for (_, tb_line_no, _, text) in exc_tb_list:
+                if not text:
+                    line_no = tb_line_no
+                    break
+            line_no_re_result = self._exception_line_no_re.search(exc_str)
+            if line_no_re_result:
+                line_no = int(line_no_re_result.group(1))
+            line_no += line_offset - 1
+        del exc_tb
+        # print source code
+        fmt_exc += Colors.FAIL + '*** Source:' + Colors.END + '\n'
+        for idx, line in enumerate(self._template.splitlines(0)):
+            if abs(idx - line_no + 1) == display_lines + 1:
+                fmt_exc += '   %4d | ...' % (idx + 1) + '\n'
+            elif abs(idx - line_no + 1) > display_lines:
+                continue
+            elif idx + 1 == line_no:
+                fmt_exc += Colors.GREEN + '-->' + \
+                        '%4d' % (idx + 1) + Colors.END + ' | ' + \
+                        Colors.WARNING + '%s' % line + Colors.END + '\n'
+            else:
+                fmt_exc += '   %4d | %s' % (idx + 1, line) + '\n'
+        return fmt_exc
 
     def name(self):
         return self._name
@@ -420,6 +428,9 @@ class Template(object):
 
     def set_eat_blanklines(self, eat):
         self._eat_blanklines = eat
+
+    def exc(self):
+        return self._exc
 
 def key_for_value(dictionary, value):
     """
