@@ -201,8 +201,8 @@ Rendered result by running
          64 | ...
          65 |     else
          66 |     begin
-    -->  67 |         accu <= {# accu_init_str #};
-         68 |         accu_prev <= {# accu_init_str #};
+    -->  67 |         accu = {# accu_init_str #};
+         68 |         accu_prev = {# accu_init_str #};
          69 |     end
          70 | ...
 </pre>
