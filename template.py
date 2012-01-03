@@ -313,10 +313,13 @@ class Template(object):
         return result
 
     def save(self, path, **kwargs):
-        if os.path.isdir(path):
-            path = os.path.join(path, self._name)
         if not self._rendered:
             self.render(**kwargs)
+        if type(path) is file:
+            path.write(self._rendered)
+            return
+        if os.path.isdir(path):
+            path = os.path.join(path, self._name)
         try:
             f = open(path, 'w')
         except IOError:
