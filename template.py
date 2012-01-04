@@ -50,14 +50,13 @@ class Template(object):
         template file search path
         """
         # initialise template
-        self._path = path
         if path:
-            splited_path = os.path.split(path)
-            self._name = splited_path[1]
-            self._dir = os.path.abspath(splited_path[0])
+            path = os.path.abspath(path)
+            self._dir, self._name = os.path.split(path)
         else:
             self._name = 'untitled'
             self._dir = '.'
+        self._path = path
         if not template:
             f = open(path)
             template = f.read()
@@ -350,10 +349,15 @@ class Template(object):
         """
         def eval_or_exec(block, globs, locls):
             result = None
+            name = self._path if self._path else repr(self)
             try:
-                result = eval(block, globs, locls)
+                if not block.endswith('\n'):
+                    block += '\n'
+                code = compile(block, name, 'eval')
+                result = eval(code, globs, locls)
             except SyntaxError:
-                exec block in globs, locls
+                code = compile(block, name, 'exec')
+                exec code in globs, locls
             return result
         if not self._globals:
             self._globals = {}
@@ -368,11 +372,14 @@ class Template(object):
                 self._exc = self._format_exception(
                         line_offset=start_line_no)
                 print self._exc
+                # FIXME: The traceback does not have the correct line
+                # number for the template file, an ulgy and limited
+                # hack by faking an exception exists for this -
+                # github.com/mitsuhiko/jinja2/blob/master/jinja2/debug.py
                 raise
-        # FIXME: Python can only make imports local
-        # if executed in local scope
-        # This hack would eventually in some cases
-        # result in namespace collision problem
+        # FIXME: Python can only make imports local if executed in local
+        # scope. This hack would eventually in some cases result in namespace
+        # collision problem
         self._globals.update(self._locals)
         self._locals.clear()
         return result
@@ -394,8 +401,8 @@ class Template(object):
         # find line number
         if not line_no:
             exc_tb_list = traceback.extract_tb(exc_tb)
-            for (tb_src, tb_line_no, _, _) in exc_tb_list:
-                if tb_src == '<string>':
+            for (tb_name, tb_line_no, _, _) in exc_tb_list:
+                if tb_name == self._path or tb_name == repr(self):
                     line_no = tb_line_no
                     break
             line_no_re_result = self._exception_line_no_re.search(exc_str)
