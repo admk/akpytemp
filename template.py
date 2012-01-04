@@ -483,6 +483,7 @@ def code_gobble(code, gobble_count=-1):
     new_code_list = []
     for line in code.splitlines(0):
         if not line.strip():
+            new_code_list.append('')
             continue
         line = line.replace('\t', '    ')
         if gobble_count < 0:
