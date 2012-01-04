@@ -394,8 +394,8 @@ class Template(object):
         # find line number
         if not line_no:
             exc_tb_list = traceback.extract_tb(exc_tb)
-            for (_, tb_line_no, _, text) in exc_tb_list:
-                if not text:
+            for (tb_src, tb_line_no, _, _) in exc_tb_list:
+                if tb_src == '<string>':
                     line_no = tb_line_no
                     break
             line_no_re_result = self._exception_line_no_re.search(exc_str)
