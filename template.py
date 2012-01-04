@@ -1,8 +1,8 @@
+from akpytemp.colors import Colors
 import re
 import os
 import sys
 import inspect
-from colors import Colors
 
 class Template(object):
     """
@@ -510,8 +510,11 @@ def main():
         return
     if len(args) == 0:
         parser.error('File is not specified')
-    print args[0]
-    Template(path=args[0]).save(options.outputdir if options.outputdir else sys.stdout)
+    if options.outputdir:
+        output_file = options.outputdir
+    else:
+        output_file = sys.stdout
+    Template(path=args[0]).save(output_file)
 
 if __name__ == '__main__':
     main()
