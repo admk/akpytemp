@@ -1,4 +1,4 @@
-from akpytemp.colors import Colors
+from colors import Colors
 import re
 import os
 import sys
@@ -61,11 +61,11 @@ class Template(object):
             f = open(path)
             template = f.read()
             f.close()
-            if template.endswith('\n'):
-                template = template[:-1]
-            self._template = template
-        else:
-            self._template = template
+        elif type(template) is file:
+            template = template.read()
+        if template.endswith('\n'):
+            template = template[:-1]
+        self._template = template
         # delimiter tokens
         self._delimiters = {
                 'left_expr': r'{#',        'right_expr': r'#}',
@@ -516,13 +516,14 @@ def main():
         import doctest
         doctest.testmod()
         return
-    if len(args) == 0:
-        parser.error('File is not specified')
     if options.outputdir:
         output_file = options.outputdir
     else:
         output_file = sys.stdout
-    Template(path=args[0]).save(output_file)
+    if len(args) == 0:
+        Template(sys.stdin).save(output_file)
+    else:
+        Template(path=args[0]).save(output_file)
 
 if __name__ == '__main__':
     main()
