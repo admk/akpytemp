@@ -510,7 +510,8 @@ def main():
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option('-o', '--outputdir', dest='outputdir')
-    parser.add_option('-t', '--test', dest='should_test')
+    parser.add_option('-t', '--test',
+            action='store_true', dest='should_test')
     (options, args) = parser.parse_args()
     if options.should_test:
         import doctest
