@@ -57,6 +57,9 @@ class Template(object):
             self._name = 'untitled'
             self._dir = '.'
         self._path = path
+        self._target_path = None
+        self._target_dir = None
+        self._target_name = None
         if not template:
             f = open(path)
             template = f.read()
@@ -328,20 +331,22 @@ class Template(object):
         return result
 
     def save(self, path, **kwargs):
-        if not self._rendered:
-            self.render(**kwargs)
+        def render(f):
+            self._target_path = f.name
+            self._target_dir, self._target_name = os.path.split(f.name)
+            if not self._rendered:
+                self.render(**kwargs)
+            f.write(self._rendered)
         if type(path) is file:
-            path.write(self._rendered)
-            return
-        if os.path.isdir(path):
-            path = os.path.join(path, self._name)
-        try:
-            f = open(path, 'w')
-        except IOError:
-            os.makedirs(os.path.split(path)[0])
-            f = open(path, 'w')
-        f.write(self._rendered)
-        f.close()
+            render(path)
+        else:
+            if os.path.isdir(path):
+                path = os.path.join(path, self._name)
+            f_dir = os.path.split(path)[0]
+            if not os.path.exists(f_dir):
+                os.makedirs(f_dir)
+            with open(path, 'w') as f:
+                render(f)
 
     def _eval(self, block, start_line_no):
         """
@@ -433,6 +438,15 @@ class Template(object):
 
     def path(self):
         return self._path
+
+    def target_name(self):
+        return self._target_name
+
+    def target_dir(self):
+        return self._target_dir
+
+    def target_path(self):
+        return self._target_path
 
     def emit_enable(self):
         return self._emit_enable
