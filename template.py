@@ -6,6 +6,96 @@ import os
 import sys
 import inspect
 
+class TemplateLexer(object):
+    """A lexical analyser that tokenises delimiter separated template"""
+    def __init__(self, template):
+        """Constructor
+            template - the template string
+        """
+        # delimiter tokens
+        self._delimiters = {
+                'left_expr': r'{#',        'right_expr': r'#}',
+                'left_for':  r'{%\s+for',  'right_for':  r'%}',
+                'left_if':   r'{%\s+if',   'right_if':   r'%}',
+                'left_elif': r'{%\s+elif', 'right_elif': r'%}',
+                'left_else': r'{%\s+else', 'right_else': r'%}',
+                'left_end':  r'{%\s+end',  'right_end':  r'%}', }
+        self._delimiter_re = {}
+        for key, val in self._delimiters.iteritems():
+            self._delimiter_re[key] = re.compile('(' + val + ')')
+        self.template = template
+
+    def _matching_delimiter_re(self, delimiter_re):
+        """Find the regular expression of the matching delimiter"""
+        key = key_for_value(self._delimiter_re, delimiter_re)
+        pair = ['left', 'right']
+        for idx, val in enumerate(pair):
+            if val in key:
+                new_key = key.replace(pair[idx], pair[1 - idx])
+        return self._delimiter_re[new_key]
+
+    def lex(self):
+        """Perform lexical analysis on the template string
+        Return a list of tuples, each containing the value and its designated
+        token
+        """
+        # split template
+        lexed_template = [self.template]
+        for regex in self._delimiter_re.itervalues():
+            lexed_template = chop(lexed_template, regex)
+        # assign tokens
+        token_re = re.compile('.*_(.*)')
+        lexed = []
+        idx = 0
+        line_no = 1
+        lexed_template_size = len(lexed_template)
+        while idx < lexed_template_size:
+            is_code = False
+            lexed_str = lexed_template[idx]
+            ldlim_res = re_lookup_val(self._delimiter_re, 'left.*')
+            for ldlim_key, ldlim_re in ldlim_res:
+                # search for left delimiters
+                if not ldlim_re.match(lexed_str):
+                    continue
+                # found and expect code tokens
+                is_code = True
+                # left delimiter consistency checks
+                error_str = None
+                rdlim_re = self._matching_delimiter_re(ldlim_re)
+                if not rdlim_re.match(lexed_template[idx + 2]):
+                    error_str = ''.join(lexed_template[idx:(idx + 2)])
+                if error_str:
+                    raise SyntaxError(
+                            'line %d, "%s": Code block is not terminated' %
+                            (line_no, error_str))
+                # tokenise
+                token_re_results = token_re.search(ldlim_key)
+                if token_re_results.groups < 1:
+                    raise Exception('\'%s\'\nInvalid lexer structure'
+                            % ldlim_key)
+                lexed.append((lexed_template[idx + 1],
+                        token_re_results.group(1), line_no))
+                line_no += lexed_template[idx + 1].count('\n')
+                idx += 3
+            # right delimiter consistency checks
+            rdlim_res = re_lookup_val(self._delimiter_re, 'right.*')
+            for _, rdlim_re in rdlim_res:
+                if not rdlim_re.match(lexed_str):
+                    continue
+                if idx > 0:
+                    error_str = lexed_template[idx - 1] + lexed_str
+                else:
+                    error_str = lexed_str
+                raise SyntaxError(
+                        'line %d, "%s": No code block to terminate' %
+                        (line_no, lexed_str))
+            if not is_code:
+                if lexed_str:
+                    lexed.append((lexed_str, 'text', line_no))
+                    line_no += lexed_str.count('\n')
+                idx += 1
+        return lexed
+
 class Template(object):
     """
     akpytemp
@@ -73,17 +163,6 @@ class Template(object):
         self._template = template
         # nested template inclusion
         self._parent = None
-        # delimiter tokens
-        self._delimiters = {
-                'left_expr': r'{#',        'right_expr': r'#}',
-                'left_for':  r'{%\s+for',  'right_for':  r'%}',
-                'left_if':   r'{%\s+if',   'right_if':   r'%}',
-                'left_elif': r'{%\s+elif', 'right_elif': r'%}',
-                'left_else': r'{%\s+else', 'right_else': r'%}',
-                'left_end':  r'{%\s+end',  'right_end':  r'%}', }
-        self._delimiter_re = {}
-        for key, val in self._delimiters.iteritems():
-            self._delimiter_re[key] = re.compile('(' + val + ')')
         # rendering
         self._rendered = None
         self._emit_enable = True
@@ -108,74 +187,7 @@ class Template(object):
         return locals_init
 
     def _lex(self, template):
-        """
-        Perform lexical analysis on the template string
-        Return a list of tuples, each containing the value
-        and its designated token
-        """
-        def matching_delimiter_re(delimiter_re):
-            key = key_for_value(self._delimiter_re, delimiter_re)
-            pair = ['left', 'right']
-            for idx, val in enumerate(pair):
-                if val in key:
-                    new_key = key.replace(pair[idx], pair[1 - idx])
-            return self._delimiter_re[new_key]
-        # split template
-        lexed_template = [template]
-        for regex in self._delimiter_re.itervalues():
-            lexed_template = chop(lexed_template, regex)
-        # assign tokens
-        token_re = re.compile('.*_(.*)')
-        lexed = []
-        idx = 0
-        line_no = 1
-        lexed_template_size = len(lexed_template)
-        while idx < lexed_template_size:
-            is_code = False
-            lexed_str = lexed_template[idx]
-            ldlim_res = re_lookup_val(self._delimiter_re, 'left.*')
-            for ldlim_key, ldlim_re in ldlim_res:
-                # search for left delimiters
-                if not ldlim_re.match(lexed_str):
-                    continue
-                # found and expect code tokens
-                is_code = True
-                # left delimiter consistency checks
-                error_str = None
-                rdlim_re = matching_delimiter_re(ldlim_re)
-                if not rdlim_re.match(lexed_template[idx + 2]):
-                    error_str = ''.join(lexed_template[idx:(idx + 2)])
-                if error_str:
-                    raise SyntaxError(
-                            'line %d, "%s": Code block is not terminated' %
-                            (line_no, error_str))
-                # tokenise
-                token_re_results = token_re.search(ldlim_key)
-                if token_re_results.groups < 1:
-                    raise Exception('\'%s\'\nInvalid lexer structure'
-                            % ldlim_key)
-                lexed.append((lexed_template[idx + 1],
-                        token_re_results.group(1), line_no))
-                line_no += lexed_template[idx + 1].count('\n')
-                idx += 3
-            # right delimiter consistency checks
-            rdlim_res = re_lookup_val(self._delimiter_re, 'right.*')
-            for _, rdlim_re in rdlim_res:
-                if not rdlim_re.match(lexed_str):
-                    continue
-                if idx > 0:
-                    error_str = lexed_template[idx - 1] + lexed_str
-                else:
-                    error_str = lexed_str
-                raise SyntaxError(
-                        'line %d, "%s": No code block to terminate' %
-                        (line_no, lexed_str))
-            if not is_code:
-                if lexed_str:
-                    lexed.append((lexed_str, 'text', line_no))
-                    line_no += lexed_str.count('\n')
-                idx += 1
-        return lexed
+        return TemplateLexer(template).lex()
 
     def clear(self):
         """
