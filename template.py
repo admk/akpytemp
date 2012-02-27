@@ -1,5 +1,6 @@
 from colors import Colors
 from utils import key_for_value, re_lookup_val, chop, code_gobble
+from exceptions import TemplateParentNotFoundError
 import re
 import os
 import sys
@@ -226,16 +227,17 @@ class Template(object):
         include_namespace = dict(**self._globals)
         if namespace:
             include_namespace.update(namespace)
-        if kwargs:
-            namespace = None
-            include_namespace.update(kwargs)
-        include_namespace.update(parent=self)
-        include_result = include_template.render(namespace=include_namespace)
-        include_globals = include_template._globals
-        self._globals.update(include_globals)
-        if not emit:
-            return
-        self.emit(include_result)
+        # render
+        include_result = include_template.render(
+                namespace=include_namespace, **kwargs)
+        # update globals dict in this template
+        self._globals.update(include_template._globals)
+        # make sure the functions defined in this template do not get
+        # overwritten by the included template globals
+        self._globals.update(self._locals_init)
+        # emit results
+        if emit:
+            self.emit(include_result)
 
     def _render_r(self, lexed_template):
         """
