@@ -70,6 +70,8 @@ class Template(object):
         if template.endswith('\n'):
             template = template[:-1]
         self._template = template
+        # nested template inclusion
+        self._parent = None
         # delimiter tokens
         self._delimiters = {
                 'left_expr': r'{#',        'right_expr': r'#}',
@@ -219,7 +221,9 @@ class Template(object):
         """
         include_file = os.path.join(self._dir, path)
         include_template = Template(path=include_file)
-        include_namespace = dict(self._globals)
+        include_template._parent = self
+        # update namespace for rendering
+        include_namespace = dict(**self._globals)
         if namespace:
             include_namespace.update(namespace)
         if kwargs:
@@ -450,6 +454,11 @@ class Template(object):
 
     def target_path(self):
         return self._target_path
+
+    def parent(self):
+        if not self._parent:
+            raise TemplateParentNotFoundError
+        return self._parent
 
     def emit_enable(self):
         return self._emit_enable
