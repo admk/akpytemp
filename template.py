@@ -93,14 +93,16 @@ class Template(object):
                 '__set__': self._set,
                 '__get__': self._get,
                 '__render__': self._render_r, }
-        def append_to_template(method):
-            self._locals_init[method[0]] = getattr(self, method[0])
-        methods = inspect.getmembers(Template, predicate=inspect.ismethod)
-        for method in methods:
-            if method[0].startswith('_'):
-                continue
-            append_to_template(method)
+        self._locals_init.update(self._locals_init_dict())
         self._locals = dict(self._locals_init)
+
+    def _locals_init_dict(self):
+        methods = [member[0] for member in inspect.getmembers(
+                Template, predicate=inspect.ismethod)]
+        locals_init = {
+                method: getattr(self, method)
+                for method in methods if not method.startswith('_') }
+        return locals_init
 
     def _lex(self, template):
         """
