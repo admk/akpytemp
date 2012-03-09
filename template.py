@@ -134,7 +134,7 @@ class Template(object):
     >>> Template('1{# set_emit_enable(False) #}2').render()
     '1'
     """
-    def __init__(self, template=None, path=None):
+    def __init__(self, template=None, path=None, include_path=None):
         """
         Constructor
         template: a string containing a template
@@ -163,6 +163,7 @@ class Template(object):
         self._template = template
         # nested template inclusion
         self._parent = None
+        self._include_path = include_path
         # rendering
         self._rendered = None
         self._emit_enable = True
@@ -232,7 +233,10 @@ class Template(object):
         """
         Include and render template file from a template
         """
-        include_file = os.path.join(self._dir, path)
+        if self._include_path:
+            include_file = os.path.join(self._include_path, path)
+        else:
+            include_file = os.path.join(self._dir, path)
         include_template = Template(path=include_file)
         include_template._parent = self
         # update namespace for rendering
