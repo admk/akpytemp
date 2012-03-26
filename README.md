@@ -47,7 +47,7 @@ Usage
         {% end %}{% if d >= 3  %}Three French hens,
         {% end %}{% if d >= 2  %}Two turtle doves,
         {% end %}{% if d == 1  %}A{% else %}And a{% end %} partridge in a pear tree.
-        {% end %}    
+        {% end %}
 
 Rendered result by running <code>python template.py test/12daysofxmas.template</code>
 
