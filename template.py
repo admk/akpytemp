@@ -1,8 +1,9 @@
-from colors import Colors
-from utils import key_for_value, re_lookup_val, chop, code_gobble
-from exceptions import TemplateParentNotFoundError
+from .colors import Colors
+from .utils import key_for_value, re_lookup_val, chop, code_gobble
+from .exceptions import TemplateParentNotFoundError
 import re
 import os
+import io
 import sys
 import inspect
 
@@ -21,7 +22,7 @@ class TemplateLexer(object):
                 'left_else': r'{%\s+else', 'right_else': r'%}',
                 'left_end':  r'{%\s+end',  'right_end':  r'%}', }
         self._delimiter_re = {}
-        for key, val in self._delimiters.iteritems():
+        for key, val in self._delimiters.items():
             self._delimiter_re[key] = re.compile('(' + val + ')')
         self.template = template
 
@@ -41,7 +42,7 @@ class TemplateLexer(object):
         """
         # split template
         lexed_template = [self.template]
-        for regex in self._delimiter_re.itervalues():
+        for regex in self._delimiter_re.values():
             lexed_template = chop(lexed_template, regex)
         # assign tokens
         token_re = re.compile('.*_(.*)')
@@ -70,7 +71,7 @@ class TemplateLexer(object):
                             (line_no, error_str))
                 # tokenise
                 token_re_results = token_re.search(ldlim_key)
-                if token_re_results.groups < 1:
+                if len(token_re_results.groups()) < 1:
                     raise Exception('\'%s\'\nInvalid lexer structure'
                             % ldlim_key)
                 lexed.append((lexed_template[idx + 1],
@@ -156,7 +157,7 @@ class Template(object):
             f = open(path)
             template = f.read()
             f.close()
-        elif type(template) is file:
+        elif isinstance(template, io.IOBase):
             template = template.read()
         if template.endswith('\n'):
             template = template[:-1]
@@ -181,7 +182,7 @@ class Template(object):
 
     def _locals_init_dict(self):
         methods = [member[0] for member in inspect.getmembers(
-                Template, predicate=inspect.ismethod)]
+                Template, predicate=inspect.isroutine)]
         locals_init = {
                 method: getattr(self, method)
                 for method in methods if not method.startswith('_') }
@@ -265,7 +266,7 @@ class Template(object):
             """
             depth = 1
             render_template = []
-            for end_idx in xrange(idx + 1, len(lexed_template)):
+            for end_idx in range(idx + 1, len(lexed_template)):
                 (end_str, end_token, end_line_no) = lexed_template[end_idx]
                 if 'for' == end_token or 'if' == end_token:
                     depth += 1
@@ -351,7 +352,7 @@ class Template(object):
             if not self._exc:
                 # print exception & source
                 self._exc = self._format_exception(line_offset=1)
-                print self._exc
+                print(self._exc)
                 raise
         return result
 
@@ -362,13 +363,13 @@ class Template(object):
             if not self._rendered:
                 self.render(**kwargs)
             f.write(self._rendered)
-        if type(path) is file:
+        if isinstance(path, io.IOBase):
             render(path)
         else:
             if os.path.isdir(path):
                 path = os.path.join(path, self._name)
             f_dir = os.path.split(path)[0]
-            if not os.path.exists(f_dir):
+            if f_dir and not os.path.exists(f_dir):
                 os.makedirs(f_dir)
             with open(path, 'w') as f:
                 render(f)
@@ -387,7 +388,7 @@ class Template(object):
                 result = eval(code, globs, locls)
             except SyntaxError:
                 code = compile(block, name, 'exec')
-                exec code in globs, locls
+                exec(code, globs, locls)
             return result
         if not self._globals:
             self._globals = {}
@@ -401,7 +402,7 @@ class Template(object):
                 # print exception & source
                 self._exc = self._format_exception(
                         line_offset=start_line_no)
-                print self._exc
+                print(self._exc)
                 # FIXME: The traceback does not have the correct line
                 # number for the template file, an ulgy and limited
                 # hack by faking an exception exists for this -

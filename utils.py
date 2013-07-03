@@ -4,7 +4,7 @@ def key_for_value(dictionary, value):
     """
     Find key for a specified value in a dictionary
     """
-    for key, val in dictionary.iteritems():
+    for key, val in dictionary.items():
         if val == value:
             return key
 
@@ -13,7 +13,7 @@ def re_lookup_val(dictionary, regex):
     Lookup values by using a regex to match keys in dictionary
     """
     key_re = re.compile(regex)
-    for key, val in dictionary.iteritems():
+    for key, val in dictionary.items():
         if key_re.match(key):
             yield key, val
     return
