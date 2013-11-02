@@ -1,5 +1,7 @@
 from .colors import Colors
-from .utils import key_for_value, re_lookup_val, chop, code_gobble
+from .utils import (
+    key_for_value, re_lookup_val, chop, code_gobble, _exec, _eval
+)
 from .exceptions import TemplateParentNotFoundError
 import re
 import os
@@ -385,10 +387,10 @@ class Template(object):
                 if not block.endswith('\n'):
                     block += '\n'
                 code = compile(block, name, 'eval')
-                result = eval(code, globs, locls)
+                result = _eval(code, globs, locls)
             except SyntaxError:
                 code = compile(block, name, 'exec')
-                exec(code, globs, locls)
+                _exec(code, globs, locls)
             return result
         if not self._globals:
             self._globals = {}
